@@ -21,8 +21,8 @@
   },
   "plugins": ["react"],
   "rules": {
+    "no-debugger": "off",
     "no-case-declarations": "warn",
-    "no-debugger": "warn",
     "no-empty": "warn",
     "no-extra-boolean-cast": "warn",
     "no-extra-semi": "warn",

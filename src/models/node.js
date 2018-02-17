@@ -1,24 +1,45 @@
 import { NODE_RADIUS } from '../components/fsm';
 import drawText from '../utils/draw-text';
+import { append } from 'funcadelic';
+import shortid from 'shortid';
 
 export default class Node {
+  id = shortid.generate();
+  mouseOffsetX = 0;
+  mouseOffsetY = 0;
+  isAcceptState = false;
+  text = '';
+
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.mouseOffsetX = 0;
-    this.mouseOffsetY = 0;
-    this.isAcceptState = false;
-    this.text = '';
   }
 
   setMouseStart(x, y) {
-    this.mouseOffsetX = this.x - x;
-    this.mouseOffsetY = this.y - y;
+    return append(this, {
+      mouseOffsetX: this.x - x,
+      mouseOffsetY: this.y - y
+    });
+  }
+
+  setCoordinates(x, y) {
+    return append(this, {
+      x,
+      y
+    });
   }
 
   setAnchorPoint(x, y) {
-    this.x = x + this.mouseOffsetX;
-    this.y = y + this.mouseOffsetY;
+    return append(this, {
+      x: x + this.mouseOffsetX,
+      y: y + this.mouseOffsetY
+    });
+  }
+
+  toggleIsAcceptState() {
+    return append(this, {
+      isAcceptState: !this.isAcceptState
+    });
   }
 
   draw(c, options) {

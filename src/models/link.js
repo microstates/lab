@@ -5,6 +5,7 @@ import {
 } from '../components/fsm';
 import drawArrow from '../utils/draw-arrow';
 import drawText from '../utils/draw-text';
+import { append } from 'funcadelic';
 
 function det(a, b, c, d, e, f, g, h, i) {
   return a * e * i + b * f * g + c * d * h - a * f * h - b * d * i - c * e * g;
@@ -80,14 +81,18 @@ export default class Link {
     };
   }
 
+  // TODO: refactor to be immutable
   setAnchorPoint(x, y) {
     let dx = this.nodeB.x - this.nodeA.x;
     let dy = this.nodeB.y - this.nodeA.y;
     let scale = Math.sqrt(dx * dx + dy * dy);
+
     this.parallelPart =
       (dx * (x - this.nodeA.x) + dy * (y - this.nodeA.y)) / (scale * scale);
+
     this.perpendicularPart =
       (dx * (y - this.nodeA.y) - dy * (x - this.nodeA.x)) / scale;
+
     // snap to a straight line
     if (
       this.parallelPart > 0 &&
