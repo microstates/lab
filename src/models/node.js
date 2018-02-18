@@ -42,6 +42,12 @@ export default class Node {
     });
   }
 
+  setText(text) {
+    return append(this, {
+      text
+    });
+  }
+
   draw(c, options) {
     // draw the circle
     c.beginPath();

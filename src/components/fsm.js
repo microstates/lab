@@ -87,6 +87,15 @@ export default class FSM extends PureComponent {
     });
   };
 
+  updateNodeText = (node, text) => {
+    this.update({
+      nodes: [
+        ...this.nodes.filter(current => current !== node),
+        node.setText(text)
+      ]
+    });
+  };
+
   render() {
     let { width, height } = this.props;
 
@@ -114,6 +123,11 @@ export default class FSM extends PureComponent {
                       draggable={true}
                       ondragend={e => this.afterDraggingNode(node, e)}
                       key={node.id}
+                      ondblclick={() =>
+                        show(node).then(({ text }) =>
+                          this.updateNodeText(node, text)
+                        )
+                      }
                     >
                       <Circle
                         radius={NODE_RADIUS}
