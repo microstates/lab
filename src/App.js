@@ -9,8 +9,8 @@ import FSM from './components/fsm';
 class App extends PureComponent {
   state = {
     chart: {
-      nodes: [],
-      links: []
+      states: [],
+      transitions: []
     }
   };
 
@@ -18,7 +18,7 @@ class App extends PureComponent {
     return (
       <div className="container-fluid h-100">
         <div className="row h-50">
-          <div className="col-lg-6">
+          <div className="col-lg-7">
             <AutoSizer>
               {({ height, width }) => (
                 <FSM
@@ -30,7 +30,7 @@ class App extends PureComponent {
               )}
             </AutoSizer>
           </div>
-          <div className="col-lg-6 h-100 json-tree-container">
+          <div className="col-lg-5 h-100 json-tree-container">
             <JSONTree
               className="h-100"
               data={this.state.chart}

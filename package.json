@@ -5,15 +5,17 @@
   "dependencies": {
     "bootstrap": "4.0.0-alpha.6",
     "konva": "1.7.6",
+    "lodash.keyby": "4.6.0",
+    "prop-types": "15.6.0",
     "react": "^16.2.0",
+    "react-aria-modal": "2.12.1",
     "react-dom": "^16.2.0",
+    "react-event-listener": "0.5.3",
     "react-json-tree": "0.11.0",
     "react-konva": "1.6.6",
     "react-scripts": "1.1.1",
     "react-virtualized": "9.18.5",
-    "shortid": "2.2.8",
-    "prop-types": "15.6.0",
-    "react-aria-modal": "2.12.1"
+    "shortid": "2.2.8"
   },
   "scripts": {
     "start": "react-scripts start",

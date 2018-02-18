@@ -2,20 +2,35 @@ import React, { PureComponent } from 'react';
 import propTypes from 'prop-types';
 import Node from '../models/node';
 import Modal from './modal';
+import EventListener from 'react-event-listener';
+import keyBy from 'lodash.keyby';
+import Link from '../models/link';
+import { append } from 'funcadelic';
 
-import { Stage, Layer, Rect, Text, Circle, Group } from 'react-konva';
+import { Stage, Layer, Rect, Text, Circle, Group, Arrow } from 'react-konva';
 
 export const SNAP_TO_PADDING = 6;
 export const NODE_RADIUS = 30;
 export const HIT_TARGET_PADDING = 6;
+
+function create(Type, props) {
+  return append(new Type(), props);
+}
+
+function closestPoints(a, b) {
+  let dx = b.x - a.x;
+  let dy = b.y - a.y;
+  let scale = Math.sqrt(dx * dx + dy * dy);
+  return [a.x + dx * NODE_RADIUS / scale, a.y + dy * NODE_RADIUS / scale];
+}
 
 export default class FSM extends PureComponent {
   static propTypes = {
     width: propTypes.number,
     height: propTypes.number,
     chart: propTypes.shape({
-      nodes: propTypes.array,
-      links: propTypes.array
+      states: propTypes.array,
+      transitions: propTypes.array
     }),
     onChange: propTypes.func
   };
@@ -30,12 +45,38 @@ export default class FSM extends PureComponent {
     name: ''
   };
 
-  get nodes() {
-    return this.props.chart.nodes;
+  get states() {
+    return this.props.chart.states;
   }
 
-  get links() {
-    return this.props.chart.links;
+  get transitions() {
+    let { statesById } = this;
+    return this.props.chart.transitions.map(link => {
+      console.log(link);
+      return append(link, {
+        get a() {
+          return statesById[link.a];
+        },
+        get b() {
+          return statesById[link.b];
+        },
+        get points() {
+          if (this.a && this.b) {
+            return [
+              ...closestPoints(this.a, this.b),
+              ...closestPoints(this.b, this.a)
+            ];
+          } else {
+            return [];
+          }
+        }
+      });
+    });
+  }
+
+  get statesById() {
+    let { states } = this;
+    return keyBy(states, 'id');
   }
 
   setName = name => {
@@ -56,72 +97,104 @@ export default class FSM extends PureComponent {
     });
   };
 
-  update({ nodes = this.nodes, links = this.links, ...state }) {
+  update({
+    states = this.props.chart.states,
+    transitions = this.props.chart.transitions,
+    ...state
+  }) {
     this.setState(state);
     let { onChange } = this.props;
     if (onChange) {
-      onChange({ nodes, links });
+      onChange({ states, transitions });
     }
   }
 
-  setSelected(node) {
-    this.setState({
-      selectedObject: node
-    });
-  }
-
-  afterDraggingNode(node, { evt }) {
+  afterDraggingNode = (node, { evt }) => {
     this.update({
-      nodes: [
-        ...this.nodes.filter(current => current !== node),
-        node.setCoordinates(evt.x, evt.y)
+      states: [
+        ...this.props.chart.states.filter(current => current.id !== node.id),
+        append(node, { x: evt.x, y: evt.y })
       ]
     });
-  }
-
-  clearSelected = () => this.setState({ selectedObject: null });
+  };
 
   addNewNode = ({ x, y, text }) => {
     this.update({
-      nodes: [...this.nodes, new Node(x, y, text)]
+      states: [...this.props.chart.states, create(Node, { x, y, text })]
     });
   };
 
   updateNodeText = (node, text) => {
     this.update({
-      nodes: [
-        ...this.nodes.filter(current => current !== node),
-        node.setText(text)
+      states: [
+        ...this.props.chart.states.filter(current => current.id !== node.id),
+        append(node, { text })
       ]
     });
   };
 
+  captureShift = e => e.shiftKey && this.setState({ shift: true });
+  releaseShift = e =>
+    this.state.shift && this.setState({ shift: false, fromState: null });
+
+  whenShift = (withShift = noop, withoutShift = noop) => {
+    return () => {
+      if (this.state.shift) {
+        withShift();
+      } else {
+        withoutShift();
+      }
+    };
+  };
+
+  addTransition = node => {
+    let { fromState } = this.state;
+    if (fromState) {
+      this.update({
+        transitions: [
+          ...this.props.chart.transitions,
+          create(Link, { a: fromState.id, b: node.id })
+        ],
+        fromState: null,
+        shift: false
+      });
+    } else {
+      this.setState({
+        fromState: node
+      });
+    }
+  };
+
+  isFromState = node => this.state.fromState === node;
+
   render() {
     let { width, height } = this.props;
-
-    let { selectedObject } = this.state;
-
-    let isSelected = node => node === selectedObject;
+    let { afterDraggingNode, whenShift, addTransition, isFromState } = this;
 
     return (
-      <div>
+      <EventListener
+        target="window"
+        onKeyDown={this.captureShift}
+        onKeyUp={this.releaseShift}
+      >
         <Modal>
           {show => (
             <Stage width={width} height={height}>
               <Layer>
                 <Rect
+                  fill="#F0F8FF"
                   width={width}
                   height={height}
                   ondblclick={({ evt }) => show(evt).then(this.addNewNode)}
                   onClick={this.clearSelected}
                 />
-                {this.nodes.map(node => {
+                {this.states.map(node => {
                   return (
                     <Group
                       x={node.x}
                       y={node.y}
                       draggable={true}
-                      ondragend={e => this.afterDraggingNode(node, e)}
+                      ondragend={e => afterDraggingNode(node, e)}
                       key={node.id}
                       ondblclick={() =>
                         show(node).then(({ text }) =>
@@ -131,23 +204,41 @@ export default class FSM extends PureComponent {
                     >
                       <Circle
                         radius={NODE_RADIUS}
-                        fill={isSelected(node) ? 'blue' : 'white'}
+                        fill={isFromState(node) ? 'blue' : 'white'}
                         stroke="black"
                         strokeWidth={1}
-                        onClick={() => this.setSelected(node)}
+                        onClick={whenShift(() => addTransition(node))}
                       />
                       {node.text ? <Text text={node.text} /> : null}
                     </Group>
+                  );
+                })}
+                {this.transitions.map(({ id, points }) => {
+                  console.log(points);
+                  return (
+                    <Arrow
+                      key={id}
+                      x={0}
+                      y={0}
+                      points={points}
+                      pointerLength={10}
+                      pointerWidth={10}
+                      fill="black"
+                      stroke="black"
+                      strokeWidth={4}
+                    />
                   );
                 })}
               </Layer>
             </Stage>
           )}
         </Modal>
-      </div>
+      </EventListener>
     );
   }
 }
+
+function noop() {}
 
 // selectObject(x, y) {
 //   let { nodes, links } = this.state;
