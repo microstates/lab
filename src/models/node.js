@@ -8,11 +8,11 @@ export default class Node {
   mouseOffsetX = 0;
   mouseOffsetY = 0;
   isAcceptState = false;
-  text = '';
 
-  constructor(x, y) {
+  constructor(x, y, text = '') {
     this.x = x;
     this.y = y;
+    this.text = text;
   }
 
   setMouseStart(x, y) {

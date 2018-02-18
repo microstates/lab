@@ -1,19 +1,33 @@
 import React, { PureComponent } from 'react';
+import propTypes from 'prop-types';
 import Node from '../models/node';
+import Modal from './modal';
 
-import { Stage, Layer, Rect, Text, Circle } from 'react-konva';
+import { Stage, Layer, Rect, Text, Circle, Group } from 'react-konva';
 
 export const SNAP_TO_PADDING = 6;
 export const NODE_RADIUS = 30;
 export const HIT_TARGET_PADDING = 6;
 
 export default class FSM extends PureComponent {
+  static propTypes = {
+    width: propTypes.number,
+    height: propTypes.number,
+    chart: propTypes.shape({
+      nodes: propTypes.array,
+      links: propTypes.array
+    }),
+    onChange: propTypes.func
+  };
+
   state = {
     movingObject: false,
     originalClick: null,
     shift: false,
     currentLink: null,
-    isCaretVisible: false
+    isCaretVisible: false,
+    isNameModalOpen: false,
+    name: ''
   };
 
   get nodes() {
@@ -24,7 +38,26 @@ export default class FSM extends PureComponent {
     return this.props.chart.links;
   }
 
-  update({ nodes = this.nodes, links = this.links }) {
+  setName = name => {
+    this.setState({
+      name
+    });
+  };
+
+  openNameModal = () => {
+    this.setState({
+      isNameModalOpen: true
+    });
+  };
+
+  closeNameModal = () => {
+    this.setState({
+      isNameModalOpen: false
+    });
+  };
+
+  update({ nodes = this.nodes, links = this.links, ...state }) {
+    this.setState(state);
     let { onChange } = this.props;
     if (onChange) {
       onChange({ nodes, links });
@@ -46,9 +79,11 @@ export default class FSM extends PureComponent {
     });
   }
 
-  addNewNode = ({ evt }) => {
+  clearSelected = () => this.setState({ selectedObject: null });
+
+  addNewNode = ({ x, y, text }) => {
     this.update({
-      nodes: [...this.nodes, new Node(evt.x, evt.y)]
+      nodes: [...this.nodes, new Node(x, y, text)]
     });
   };
 
@@ -60,25 +95,42 @@ export default class FSM extends PureComponent {
     let isSelected = node => node === selectedObject;
 
     return (
-      <Stage width={width} height={height}>
-        <Layer>
-          <Rect width={width} height={height} ondblclick={this.addNewNode} />
-          {this.nodes.map(node => (
-            <Circle
-              draggable={true}
-              ondragend={e => this.afterDraggingNode(node, e)}
-              x={node.x}
-              y={node.y}
-              key={node.id}
-              radius={NODE_RADIUS}
-              fill={isSelected(node) ? 'blue' : 'white'}
-              stroke="black"
-              strokeWidth={1}
-              onClick={() => this.setSelected(node)}
-            />
-          ))}
-        </Layer>
-      </Stage>
+      <div>
+        <Modal>
+          {show => (
+            <Stage width={width} height={height}>
+              <Layer>
+                <Rect
+                  width={width}
+                  height={height}
+                  ondblclick={({ evt }) => show(evt).then(this.addNewNode)}
+                  onClick={this.clearSelected}
+                />
+                {this.nodes.map(node => {
+                  return (
+                    <Group
+                      x={node.x}
+                      y={node.y}
+                      draggable={true}
+                      ondragend={e => this.afterDraggingNode(node, e)}
+                      key={node.id}
+                    >
+                      <Circle
+                        radius={NODE_RADIUS}
+                        fill={isSelected(node) ? 'blue' : 'white'}
+                        stroke="black"
+                        strokeWidth={1}
+                        onClick={() => this.setSelected(node)}
+                      />
+                      {node.text ? <Text text={node.text} /> : null}
+                    </Group>
+                  );
+                })}
+              </Layer>
+            </Stage>
+          )}
+        </Modal>
+      </div>
     );
   }
 }

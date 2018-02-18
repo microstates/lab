@@ -31,7 +31,11 @@ class App extends PureComponent {
             </AutoSizer>
           </div>
           <div className="col-lg-6 h-100 json-tree-container">
-            <JSONTree className="h-100" data={this.state.chart} />
+            <JSONTree
+              className="h-100"
+              data={this.state.chart}
+              hideRoot={true}
+            />
           </div>
         </div>
         <div className="row h-50">
