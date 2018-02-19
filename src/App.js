@@ -4,7 +4,7 @@ import './index.css';
 
 import JSONTree from 'react-json-tree';
 import { AutoSizer } from 'react-virtualized';
-import FSM from './components/fsm';
+import Designer from './components/Designer';
 
 class App extends PureComponent {
   state = {
@@ -21,7 +21,7 @@ class App extends PureComponent {
           <div className="col-lg-7">
             <AutoSizer>
               {({ height, width }) => (
-                <FSM
+                <Designer
                   chart={this.state.chart}
                   width={width}
                   height={height}
