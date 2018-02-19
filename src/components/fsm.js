@@ -227,7 +227,19 @@ export default class FSM extends PureComponent {
                         strokeWidth={1}
                         onClick={whenShift(() => addTransition(id))}
                       />
-                      {text ? <Text text={text} /> : null}
+                      {text ? (
+                        <Text
+                          text={text}
+                          align="center"
+                          ref={ref =>
+                            ref &&
+                            ref.setOffset({
+                              x: ref.getWidth() / 2,
+                              y: ref.getHeight() / 2
+                            })
+                          }
+                        />
+                      ) : null}
                     </Group>
                   );
                 })}
