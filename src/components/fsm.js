@@ -7,6 +7,12 @@ import keyBy from 'lodash.keyby';
 import Link from '../models/link';
 import { append } from 'funcadelic';
 
+import findIndex from 'ramda/src/findIndex';
+import propEq from 'ramda/src/propEq';
+import lensPath from 'ramda/src/lensPath';
+import set from 'ramda/src/set';
+import view from 'ramda/src/view';
+
 import { Stage, Layer, Rect, Text, Circle, Group, Arrow } from 'react-konva';
 
 export const SNAP_TO_PADDING = 6;
@@ -52,7 +58,6 @@ export default class FSM extends PureComponent {
   get transitions() {
     let { statesById } = this;
     return this.props.chart.transitions.map(link => {
-      console.log(link);
       return append(link, {
         get a() {
           return statesById[link.a];
@@ -97,39 +102,45 @@ export default class FSM extends PureComponent {
     });
   };
 
-  update({
+  notify({
     states = this.props.chart.states,
-    transitions = this.props.chart.transitions,
-    ...state
+    transitions = this.props.chart.transitions
   }) {
-    this.setState(state);
     let { onChange } = this.props;
     if (onChange) {
       onChange({ states, transitions });
     }
   }
 
-  afterDraggingNode = (node, { evt }) => {
-    this.update({
-      states: [
-        ...this.props.chart.states.filter(current => current.id !== node.id),
-        append(node, { x: evt.x, y: evt.y })
-      ]
+  draggingNode = (id, { evt }) => {
+    let { states } = this.props.chart;
+    let index = findIndex(propEq('id', id), states);
+    let lens = lensPath([index]);
+
+    this.notify({
+      states: set(
+        lens,
+        append(view(lens, states), { x: evt.x, y: evt.y }),
+        states
+      )
     });
   };
 
   addNewNode = ({ x, y, text }) => {
-    this.update({
-      states: [...this.props.chart.states, create(Node, { x, y, text })]
+    let { states } = this.props.chart;
+    this.notify({
+      states: [...states, create(Node, { x, y, text })]
     });
   };
 
-  updateNodeText = (node, text) => {
-    this.update({
-      states: [
-        ...this.props.chart.states.filter(current => current.id !== node.id),
-        append(node, { text })
-      ]
+  updateNodeText = (id, text) => {
+    let { states } = this.props.chart;
+
+    let index = findIndex(propEq('id', id), states);
+    let lens = lensPath([index]);
+
+    this.notify({
+      states: set(lens, append(view(lens, states), { text }), states)
     });
   };
 
@@ -147,29 +158,33 @@ export default class FSM extends PureComponent {
     };
   };
 
-  addTransition = node => {
+  addTransition = id => {
     let { fromState } = this.state;
     if (fromState) {
-      this.update({
-        transitions: [
-          ...this.props.chart.transitions,
-          create(Link, { a: fromState.id, b: node.id })
-        ],
+      let { transitions } = this.props.chart;
+      this.notify({
+        transitions: [...transitions, create(Link, { a: fromState, b: id })],
         fromState: null,
         shift: false
       });
     } else {
       this.setState({
-        fromState: node
+        fromState: id
       });
     }
   };
 
-  isFromState = node => this.state.fromState === node;
+  isFromState = id => this.state.fromState === id;
 
   render() {
     let { width, height } = this.props;
-    let { afterDraggingNode, whenShift, addTransition, isFromState } = this;
+    let {
+      draggingNode,
+      whenShift,
+      addTransition,
+      isFromState,
+      updateNodeText
+    } = this;
 
     return (
       <EventListener
@@ -188,33 +203,33 @@ export default class FSM extends PureComponent {
                   ondblclick={({ evt }) => show(evt).then(this.addNewNode)}
                   onClick={this.clearSelected}
                 />
-                {this.states.map(node => {
+                {this.states.map(({ x, y, text, id }) => {
                   return (
                     <Group
-                      x={node.x}
-                      y={node.y}
+                      x={x}
+                      y={y}
                       draggable={true}
-                      ondragend={e => afterDraggingNode(node, e)}
-                      key={node.id}
+                      ondragstart={e => draggingNode(id, e)}
+                      ondragmove={e => draggingNode(id, e)}
+                      key={id}
                       ondblclick={() =>
-                        show(node).then(({ text }) =>
-                          this.updateNodeText(node, text)
+                        show({ x, y, text }).then(({ text: nextText }) =>
+                          updateNodeText(id, nextText)
                         )
                       }
                     >
                       <Circle
                         radius={NODE_RADIUS}
-                        fill={isFromState(node) ? 'blue' : 'white'}
+                        fill={isFromState(id) ? 'blue' : 'white'}
                         stroke="black"
                         strokeWidth={1}
-                        onClick={whenShift(() => addTransition(node))}
+                        onClick={whenShift(() => addTransition(id))}
                       />
-                      {node.text ? <Text text={node.text} /> : null}
+                      {text ? <Text text={text} /> : null}
                     </Group>
                   );
                 })}
                 {this.transitions.map(({ id, points }) => {
-                  console.log(points);
                   return (
                     <Arrow
                       key={id}
