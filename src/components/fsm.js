@@ -163,7 +163,9 @@ export default class FSM extends PureComponent {
     if (fromState) {
       let { transitions } = this.props.chart;
       this.notify({
-        transitions: [...transitions, create(Link, { a: fromState, b: id })],
+        transitions: [...transitions, create(Link, { a: fromState, b: id })]
+      });
+      this.setState({
         fromState: null,
         shift: false
       });
@@ -190,7 +192,7 @@ export default class FSM extends PureComponent {
       <EventListener
         target="window"
         onKeyDown={this.captureShift}
-        onKeyUp={this.releaseShift}
+        // onKeyUp={this.releaseShift}
       >
         <Modal>
           {show => (
