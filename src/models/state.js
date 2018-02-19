@@ -1,6 +1,6 @@
 import shortid from 'shortid';
 
-export default class Node {
+export default class State {
   id = shortid.generate();
   text = '';
 }

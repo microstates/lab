@@ -1,6 +1,6 @@
 import shortid from 'shortid';
 
-export default class Link {
+export default class Transition {
   id = shortid.generate();
   text = '';
 

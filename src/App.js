@@ -7,11 +7,25 @@ import { AutoSizer } from 'react-virtualized';
 import Designer from './components/Designer';
 
 class App extends PureComponent {
-  state = {
-    chart: {
-      states: [],
-      transitions: []
+  constructor(props) {
+    super(props);
+
+    let chart = localStorage.getItem('chart');
+    if (chart) {
+      chart = JSON.parse(chart);
+    } else {
+      chart = {
+        states: [],
+        transitions: []
+      };
     }
+
+    this.state = { chart };
+  }
+
+  save = chart => {
+    this.setState({ chart });
+    localStorage.setItem('chart', JSON.stringify(chart));
   };
 
   render() {
@@ -25,7 +39,7 @@ class App extends PureComponent {
                   chart={this.state.chart}
                   width={width}
                   height={height}
-                  onChange={chart => this.setState({ chart })}
+                  onChange={this.save}
                 />
               )}
             </AutoSizer>

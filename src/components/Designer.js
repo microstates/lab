@@ -1,10 +1,10 @@
 import React, { PureComponent } from 'react';
 import propTypes from 'prop-types';
-import Node from '../models/node';
+import State from '../models/state';
 import NameInput from './NameInput';
 import EventListener from 'react-event-listener';
 import keyBy from 'lodash.keyby';
-import Link from '../models/link';
+import Transition from '../models/transition';
 import { append } from 'funcadelic';
 
 import findIndex from 'ramda/src/findIndex';
@@ -13,7 +13,7 @@ import lensPath from 'ramda/src/lensPath';
 import set from 'ramda/src/set';
 import view from 'ramda/src/view';
 
-import { Stage, Layer, Rect, Text, Circle, Group, Arrow } from 'react-konva';
+import { Stage, Layer, Rect, Text, Group, Arrow } from 'react-konva';
 
 export const SNAP_TO_PADDING = 6;
 export const NODE_RADIUS = 30;
@@ -30,7 +30,7 @@ function closestPoints(a, b) {
   return [a.x + dx * NODE_RADIUS / scale, a.y + dy * NODE_RADIUS / scale];
 }
 
-export default class FSM extends PureComponent {
+export default class Designer extends PureComponent {
   static propTypes = {
     width: propTypes.number,
     height: propTypes.number,
@@ -59,7 +59,7 @@ export default class FSM extends PureComponent {
   get transitions() {
     let { statesById } = this;
     return this.props.chart.transitions.map(link => {
-      return append(link, {
+      return append(create(Transition, link), {
         get a() {
           return statesById[link.a];
         },
@@ -116,7 +116,7 @@ export default class FSM extends PureComponent {
 
   addNewNode = ({ x, y }) => {
     let { states } = this.props.chart;
-    let state = create(Node, { x, y });
+    let state = create(State, { x, y });
     this.notify({
       states: [...states, state]
     });
@@ -141,7 +141,7 @@ export default class FSM extends PureComponent {
     let { fromState } = this.state;
     if (fromState) {
       let { transitions } = this.props.chart;
-      let link = create(Link, { a: fromState, b: id });
+      let link = create(Transition, { a: fromState, b: id });
       this.notify({
         transitions: [...transitions, link]
       });
@@ -222,35 +222,50 @@ export default class FSM extends PureComponent {
               height={height}
               ondblclick={({ evt }) => addNewNode({ x: evt.x, y: evt.y })}
             />
-            {this.states.map(({ x, y, text, id }) => {
+            {this.states.map(node => {
+              let rect;
               return (
                 <Group
-                  x={x}
-                  y={y}
+                  x={node.x}
+                  y={node.y}
                   draggable={true}
-                  ondragstart={e => draggingNode(id, e)}
-                  ondragmove={e => draggingNode(id, e)}
-                  key={id}
-                  ondblclick={() => showNameInput('states', { x, y, id, text })}
+                  ondragstart={e => draggingNode(node.id, e)}
+                  ondragmove={e => draggingNode(node.id, e)}
+                  key={node.id}
+                  ondblclick={() => showNameInput('states', node)}
                 >
-                  <Circle
-                    radius={NODE_RADIUS}
-                    fill={isFromState(id) ? 'blue' : 'white'}
+                  <Rect
+                    ref={_rect => (rect = _rect)}
+                    cornerRadius={5}
+                    fill={isFromState(node.id) ? 'blue' : 'white'}
                     stroke="black"
                     strokeWidth={1}
-                    onClick={whenShift(() => addTransition(id))}
+                    onClick={whenShift(() => addTransition(node.id))}
                   />
-                  {text ? (
+                  {node.text ? (
                     <Text
-                      text={text}
+                      text={node.text}
                       align="center"
-                      ref={ref =>
-                        ref &&
-                        ref.setOffset({
-                          x: ref.getWidth() / 2,
-                          y: ref.getHeight() / 2
-                        })
-                      }
+                      ref={text => {
+                        if (text) {
+                          let th = text.getHeight();
+                          let tw = text.getWidth();
+                          text.setOffset({
+                            x: tw / 2,
+                            y: th / 2
+                          });
+                          if (rect) {
+                            let lh = th + 20;
+                            let lw = tw + 40;
+                            rect.width(lw);
+                            rect.height(lh);
+                            rect.setOffset({
+                              x: lw / 2,
+                              y: lh / 2
+                            });
+                          }
+                        }
+                      }}
                     />
                   ) : null}
                 </Group>
