@@ -1,10 +1,10 @@
 import React, { PureComponent } from 'react';
 import propTypes from 'prop-types';
-import State from '../models/state';
 import NameInput from './NameInput';
 import EventListener from 'react-event-listener';
 import keyBy from 'lodash.keyby';
-import Transition from '../models/transition';
+import joint from 'jointjs';
+
 import { append } from 'funcadelic';
 
 import findIndex from 'ramda/src/findIndex';
@@ -15,6 +15,9 @@ import view from 'ramda/src/view';
 
 import { Stage, Layer, Rect, Text, Group, Arrow } from 'react-konva';
 
+import Transition from '../models/transition';
+import State from '../models/state';
+
 export const SNAP_TO_PADDING = 6;
 export const NODE_RADIUS = 30;
 export const HIT_TARGET_PADDING = 6;
@@ -23,11 +26,21 @@ function create(Type, props) {
   return append(new Type(), props);
 }
 
-function closestPoints(a, b) {
-  let dx = b.x - a.x;
-  let dy = b.y - a.y;
-  let scale = Math.sqrt(dx * dx + dy * dy);
-  return [a.x + dx * NODE_RADIUS / scale, a.y + dy * NODE_RADIUS / scale];
+function linePoints(a, b) {
+  let aRect = joint.g.rect(a);
+  let bRect = joint.g.rect(b);
+
+  let abPoint = aRect.intersectionWithLineFromCenterToPoint(b);
+  let baPoint = bRect.intersectionWithLineFromCenterToPoint(a);
+
+  if (abPoint && baPoint) {
+    let { x: xa, y: ya } = aRect.intersectionWithLineFromCenterToPoint(b);
+    let { x: xb, y: yb } = bRect.intersectionWithLineFromCenterToPoint(a);
+
+    return [xa, ya, xb, yb];
+  } else {
+    return null;
+  }
 }
 
 export default class Designer extends PureComponent {
@@ -65,16 +78,6 @@ export default class Designer extends PureComponent {
         },
         get b() {
           return statesById[link.b];
-        },
-        get points() {
-          if (this.a && this.b) {
-            return [
-              ...closestPoints(this.a, this.b),
-              ...closestPoints(this.b, this.a)
-            ];
-          } else {
-            return [];
-          }
         }
       });
     });
@@ -120,7 +123,11 @@ export default class Designer extends PureComponent {
     this.notify({
       states: [...states, state]
     });
-    this.showNameInput('states', state);
+    this.showNameInput('states', state).catch(() =>
+      this.notify({
+        states: states.filter(node => state.id !== node.id)
+      })
+    );
   };
 
   captureShift = e => e.shiftKey && this.setState({ shift: true });
@@ -154,43 +161,46 @@ export default class Designer extends PureComponent {
     }
   };
 
-  showNameInput = (type, { id, text = '' }) => {
-    this.setState({
-      nameInputId: id,
-      nameInputValue: text,
-      nameInputType: type,
-      isNameInputOpen: true
-    });
+  showNameInput = (type, node) => {
+    return new Promise((resolve, reject) => {
+      this.setState({
+        nameInputId: node.id,
+        nameInputValue: node.text,
+        nameInputType: type,
+        isNameInputOpen: true,
+        onSave: () => resolve(node),
+        onAbandon: reject
+      });
+    })
+      .then(() => {
+        let { nameInputType, nameInputId, nameInputValue } = this.state;
+
+        let destination = this.props.chart[nameInputType];
+
+        let index = findIndex(propEq('id', nameInputId), destination);
+        let lens = lensPath([index]);
+
+        this.notify({
+          [nameInputType]: set(
+            lens,
+            append(view(lens, destination), { text: nameInputValue }),
+            destination
+          )
+        });
+      })
+      .finally(() =>
+        this.setState({
+          nameInputId: null,
+          nameInputValue: '',
+          isNameInputOpen: false,
+          nameInputType: null,
+          onSave: null,
+          onAbandon: null
+        })
+      );
   };
 
   changeNameInputValue = nameInputValue => this.setState({ nameInputValue });
-
-  clearNodeNameInput = () =>
-    this.setState({
-      nameInputId: null,
-      nameInputValue: '',
-      isNameInputOpen: false,
-      nameInputType: null
-    });
-
-  saveNodeNameInput = () => {
-    let { nameInputType, nameInputId, nameInputValue } = this.state;
-
-    let destination = this.props.chart[nameInputType];
-
-    let index = findIndex(propEq('id', nameInputId), destination);
-    let lens = lensPath([index]);
-
-    this.notify({
-      [nameInputType]: set(
-        lens,
-        append(view(lens, destination), { text: nameInputValue }),
-        destination
-      )
-    });
-
-    this.clearNodeNameInput();
-  };
 
   closeNameInput = () => this.setState({ isNameInputOpen: false });
 
@@ -205,17 +215,23 @@ export default class Designer extends PureComponent {
       isFromState,
       addNewNode,
       changeNameInputValue,
-      clearNodeNameInput,
-      saveNodeNameInput,
       showNameInput
     } = this;
 
-    let { nameInputValue, nameInputType, nameInputId } = this.state;
+    let {
+      nameInputValue,
+      nameInputType,
+      nameInputId,
+      onAbandon,
+      onSave
+    } = this.state;
+
+    let layer;
 
     return (
       <EventListener target="window" onKeyDown={this.captureShift}>
         <Stage width={width} height={height}>
-          <Layer>
+          <Layer ref={_layer => (layer = _layer)}>
             <Rect
               fill="#F0F8FF"
               width={width}
@@ -235,6 +251,7 @@ export default class Designer extends PureComponent {
                   ondblclick={() => showNameInput('states', node)}
                 >
                   <Rect
+                    name={node.id}
                     ref={_rect => (rect = _rect)}
                     cornerRadius={5}
                     fill={isFromState(node.id) ? 'blue' : 'white'}
@@ -248,12 +265,14 @@ export default class Designer extends PureComponent {
                       align="center"
                       ref={text => {
                         if (text) {
-                          let th = text.getHeight();
-                          let tw = text.getWidth();
+                          let th = text.height();
+                          let tw = text.width();
+
                           text.setOffset({
                             x: tw / 2,
                             y: th / 2
                           });
+
                           if (rect) {
                             let lh = th + 20;
                             let lw = tw + 40;
@@ -276,6 +295,7 @@ export default class Designer extends PureComponent {
               return (
                 <Group key={node.id}>
                   <Arrow
+                    name={node.id}
                     points={node.points}
                     pointerLength={10}
                     pointerWidth={10}
@@ -296,13 +316,32 @@ export default class Designer extends PureComponent {
                           text: node.text
                         })
                       }
-                      ref={ref =>
-                        ref &&
-                        ref.setOffset({
-                          x: ref.getWidth() / 2,
-                          y: ref.getHeight()
-                        })
-                      }
+                      ref={text => {
+                        if (layer) {
+                          /**
+                           * calculating where the transition line should touch the node.
+                           * since height and width of the nodes is calculated at run time,
+                           * we need to measure the containers to calculate the points for
+                           * the transition.
+                           */
+                          let aClientRect = layer
+                            .findOne(`.${node.a.id}`)
+                            .getClientRect();
+                          let bClientRect = layer
+                            .findOne(`.${node.b.id}`)
+                            .getClientRect();
+                          let points = linePoints(aClientRect, bClientRect);
+                          if (points) {
+                            layer.findOne(`.${node.id}`).setAttrs({ points });
+                          }
+                        }
+                        if (text) {
+                          text.setOffset({
+                            x: text.width() / 2,
+                            y: text.height()
+                          });
+                        }
+                      }}
                     />
                   ) : null}
                 </Group>
@@ -318,8 +357,8 @@ export default class Designer extends PureComponent {
                 : this.transitionsById[nameInputId].center
             }
             onChange={changeNameInputValue}
-            onAbandon={clearNodeNameInput}
-            onSave={saveNodeNameInput}
+            onAbandon={onAbandon}
+            onSave={onSave}
             value={nameInputValue}
           />
         )}
