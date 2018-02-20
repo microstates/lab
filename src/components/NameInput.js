@@ -25,6 +25,8 @@ export default function NameInput({
         }}
       >
         <input
+          placeholder={value}
+          required={true}
           id="name-input"
           value={value}
           onChange={e => onChange(e.target.value)}

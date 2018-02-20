@@ -6,6 +6,7 @@
     "bootstrap": "4.0.0-alpha.6",
     "jointjs": "2.0.1",
     "konva": "1.7.6",
+    "lodash.camelcase": "4.3.0",
     "lodash.keyby": "4.6.0",
     "lodash.without": "4.4.0",
     "prop-types": "15.6.0",

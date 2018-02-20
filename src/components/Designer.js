@@ -12,6 +12,7 @@ import propEq from 'ramda/src/propEq';
 import lensPath from 'ramda/src/lensPath';
 import set from 'ramda/src/set';
 import view from 'ramda/src/view';
+import camelCase from 'lodash.camelcase';
 
 import { Stage, Layer, Rect, Text, Group, Arrow } from 'react-konva';
 
@@ -55,10 +56,7 @@ export default class Designer extends PureComponent {
   };
 
   state = {
-    movingObject: false,
-    originalClick: null,
     shift: false,
-    currentLink: null,
     isCaretVisible: false,
     isNameInputOpen: false,
     nameInputValue: '',
@@ -130,7 +128,15 @@ export default class Designer extends PureComponent {
     );
   };
 
-  captureShift = e => e.shiftKey && this.setState({ shift: true });
+  captureKeys = e => {
+    let { fromState } = this.state;
+    if (e.shiftKey) {
+      this.setState({ shift: true });
+    } else if (e.keyCode === 27 && fromState) {
+      this.setState({ fromState: null });
+    }
+  };
+
   releaseShift = e =>
     this.state.shift && this.setState({ shift: false, fromState: null });
 
@@ -148,12 +154,22 @@ export default class Designer extends PureComponent {
     let { fromState } = this.state;
     if (fromState) {
       let { transitions } = this.props.chart;
-      let link = create(Transition, { a: fromState, b: id });
-      this.notify({
-        transitions: [...transitions, link]
-      });
-      this.showNameInput('transitions', link);
-      this.releaseShift();
+
+      let exists = transitions.find(
+        node => node.a === fromState && node.b === id
+      );
+      if (!exists) {
+        let transition = create(Transition, { a: fromState, b: id });
+        this.notify({
+          transitions: [...transitions, transition]
+        });
+        this.releaseShift();
+        this.showNameInput('transitions', transition).catch(() => {
+          this.notify({
+            transitions: transitions.filter(node => transition.id !== node.id)
+          });
+        });
+      }
     } else {
       this.setState({
         fromState: id
@@ -175,6 +191,15 @@ export default class Designer extends PureComponent {
       .then(() => {
         let { nameInputType, nameInputId, nameInputValue } = this.state;
 
+        if (!nameInputValue) {
+          throw new Error("Name can't be empty");
+        }
+
+        let text = camelCase(nameInputValue);
+        if (type === 'states') {
+          text = text.charAt(0).toUpperCase() + text.slice(1);
+        }
+
         let destination = this.props.chart[nameInputType];
 
         let index = findIndex(propEq('id', nameInputId), destination);
@@ -183,7 +208,7 @@ export default class Designer extends PureComponent {
         this.notify({
           [nameInputType]: set(
             lens,
-            append(view(lens, destination), { text: nameInputValue }),
+            append(view(lens, destination), { text }),
             destination
           )
         });
@@ -229,11 +254,11 @@ export default class Designer extends PureComponent {
     let layer;
 
     return (
-      <EventListener target="window" onKeyDown={this.captureShift}>
+      <EventListener target="window" onKeyDown={this.captureKeys}>
         <Stage width={width} height={height}>
           <Layer ref={_layer => (layer = _layer)}>
             <Rect
-              fill="#F0F8FF"
+              fill="#EFF2F9"
               width={width}
               height={height}
               ondblclick={({ evt }) => addNewNode({ x: evt.x, y: evt.y })}
@@ -254,7 +279,7 @@ export default class Designer extends PureComponent {
                     name={node.id}
                     ref={_rect => (rect = _rect)}
                     cornerRadius={5}
-                    fill={isFromState(node.id) ? 'blue' : 'white'}
+                    fill={isFromState(node.id) ? '#E1E9F4' : 'white'}
                     stroke="black"
                     strokeWidth={1}
                     onClick={whenShift(() => addTransition(node.id))}
