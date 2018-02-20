@@ -330,6 +330,7 @@ export default class Designer extends PureComponent {
                   />
                   {node.text ? (
                     <Text
+                      name={`${node.id}-text`}
                       text={node.text}
                       x={x}
                       y={y}
@@ -341,7 +342,7 @@ export default class Designer extends PureComponent {
                           text: node.text
                         })
                       }
-                      ref={text => {
+                      ref={ref => {
                         if (layer) {
                           /**
                            * calculating where the transition line should touch the node.
@@ -357,14 +358,21 @@ export default class Designer extends PureComponent {
                             .getClientRect();
                           let points = linePoints(aClientRect, bClientRect);
                           if (points) {
-                            layer.findOne(`.${node.id}`).setAttrs({ points });
+                            let arrow = layer.findOne(`.${node.id}`);
+                            arrow.setAttrs({ points });
+                            let text = layer.findOne(`.${node.id}-text`);
+                            if (text) {
+                              let [xa, ya, xb, yb] = points;
+                              let angle =
+                                Math.atan2(xb - xa, ya - yb) * 180 / Math.PI -
+                                90;
+                              text.rotation(angle);
+                              text.setOffset({
+                                x: text.width() / 2,
+                                y: text.height() + 3
+                              });
+                            }
                           }
-                        }
-                        if (text) {
-                          text.setOffset({
-                            x: text.width() / 2,
-                            y: text.height()
-                          });
                         }
                       }}
                     />
