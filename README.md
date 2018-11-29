@@ -180,3 +180,17 @@ let clapped = person.right.clap();
 // we clapped the right hand, but the left count incremented too.
 clapped.left.claps.state //=> 2
 ```
+
+##### Table
+
+Using the ability to "link into" a data structure anywhere inside the
+atom, we can use this to implement one of the holy grails of data
+structures: a [Table](examples/table.js)
+
+The cells are just a lazy enumeration that returns the cell type of
+the table. The rows are a lazy enumeration of rows, that lazily
+enumerate cells of the same type within the table. And, not
+suprisingly, the columns are a lazy enumeration of column objects that
+lazily enumerate the cells in that column.
+
+See the [testcases](tests/table.test.js) for example usage.
