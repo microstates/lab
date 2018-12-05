@@ -1,6 +1,6 @@
 import { append } from 'funcadelic';
 import { create, valueOf, atomOf } from '../index';
-import { mount, link, location } from '../src/meta';
+import { mount, link } from '../src/meta';
 import expect from 'expect';
 
 describe('Lab', () => {
@@ -124,14 +124,14 @@ describe('Lab', () => {
       get left() {
         return mount(this, append(create(Hand), {
           get other() {
-            return link(create(Hand), location(Hand, ['right']), atomOf(this), location(Hand, ['left']));
+            return link(create(Hand), Hand, ['right'], atomOf(this), Hand, ['left']);
           }
         }), 'left');
       }
       get right() {
         return mount(this, append(create(Hand), {
           get other() {
-            return link(create(Hand), location(Hand, ['left']), atomOf(this), location(Hand, ['right']));
+            return link(create(Hand), Hand, ['left'], atomOf(this), Hand, ['right']);
           }
         }), 'right');
       }

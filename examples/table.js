@@ -1,6 +1,6 @@
 import { create } from '../index';
 import { query } from '../src/query';
-import { link, ownerOf, pathOf, valueOf, atomOf, location } from '../src/meta';
+import { link, ownerOf, pathOf, valueOf, atomOf } from '../src/meta';
 
 export default function Table(T) {
   class Table {
@@ -44,7 +44,8 @@ export default function Table(T) {
         let j = -1;
         for (let _ of row) { //eslint-disable-line
           j++;
-          yield link(create(T), location(T, pathOf(this).concat([i,j])), atomOf(this), ownerOf(this));
+          let owner = ownerOf(this);
+          yield link(create(T), T, pathOf(this).concat([i, j]), atomOf(this), owner.Type, owner.path);
         }
       }
     }
@@ -61,7 +62,8 @@ export default function Table(T) {
       let { table, index } = this;
       for (let _ of valueOf(table)[index]) { //eslint-disable-line
         i++;
-        yield link(create(T), location(T, pathOf(table).concat([index, i])), atomOf(table), ownerOf(table));
+        let owner = ownerOf(table);
+        yield link(create(T), T, pathOf(table).concat([index, i]), atomOf(table), owner.Type, owner.path);
       }
     }
   }
@@ -77,7 +79,8 @@ export default function Table(T) {
       let { table, index } = this;
       for (let _ of valueOf(table)) { //eslint-disable-line
         i++;
-        yield link(create(T), location(T, pathOf(table).concat([i, index])), atomOf(table), ownerOf(table));
+        let owner = ownerOf(table);
+        yield link(create(T), T, pathOf(table).concat([i, index]), atomOf(table), owner.Type, owner.path);
       }
     }
   }
