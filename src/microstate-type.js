@@ -1,11 +1,10 @@
 import { append, map } from 'funcadelic';
 
 import CachedProperty from './cached-property';
-import { mount, valueOf, root } from './meta';
+import { root, pathOf } from './meta';
 import { methodsOf } from './reflection';
-import create from './create';
 
-export default function MicrostateType(Type, transition) {
+export default function MicrostateType(Type, transitionFn, propertyFn) {
   let Microstate = class extends Type {
     static Type = Type;
     static name = `Microstate<${Type.name}>`;
@@ -13,14 +12,8 @@ export default function MicrostateType(Type, transition) {
     constructor(value) {
       super(value);
       Object.defineProperties(this, map((slot, key) => {
-        return CachedProperty(key, self => {
-          let value = valueOf(self);
-          let expanded = typeof slot === 'function' ? create(slot, value) : slot;
-          let substate = value != null && value[key] != null ? expanded.set(value[key]) : expanded;
-          return mount(self, substate, key);
-        });
+        return CachedProperty(key, self => propertyFn(self, slot, key, pathOf(this).concat(key)));
       }, this));
-
       return root(this, Type, value);
     }
   };
@@ -28,10 +21,9 @@ export default function MicrostateType(Type, transition) {
   Object.defineProperties(Microstate.prototype, map((descriptor, name) => {
     return {
       value(...args) {
-        return transition(this, name, descriptor.value, ...args);
+        return transitionFn(this, Type, pathOf(this), name, descriptor.value, ...args);
       }
     };
   }, append({ set: { value: x => x} }, methodsOf(Type))));
-
   return Microstate;
 }
