@@ -1,5 +1,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Created by The Frontside](https://img.shields.io/badge/created%20by-frontside.io-blue.svg)](https://frontside.io) [![Greenkeeper badge](https://badges.greenkeeper.io/microstates/lab.svg)](https://greenkeeper.io/)
+[![Created by The Frontside](https://img.shields.io/badge/created%20by-frontside.io-blue.svg)](https://frontside.io)
+[![Build Status](https://travis-ci.org/microstates/lab.svg?branch=master)](https://travis-ci.org/microstates/lab)
+[![Greenkeeper badge](https://badges.greenkeeper.io/microstates/lab.svg)](https://greenkeeper.io/)
 
 
 # ❤ @microstate/lab ❤️
