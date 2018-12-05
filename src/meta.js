@@ -6,11 +6,7 @@ export function root(microstate, Type, value) {
   return set(Meta.data, new Meta(new Location(Type, []), value), microstate);
 }
 
-export function link(microstate, location, atom, owner = location) {
-  return set(Meta.data, new Meta(location, atom, owner), microstate);
-}
-
-export function link2(object, Type, path, atom, Owner, ownerPath) {
+export function link(object, Type, path, atom, Owner = Type, ownerPath = path) {
   return set(Meta.data, new Meta(new Location(Type, path), atom, new Location(Owner, ownerPath)), object);
 }
 
@@ -66,10 +62,6 @@ export class Meta {
     let location = new Location(this.location.Type, pathOf(onto).concat(atKey));
     return new Meta(location, atomOf(onto), ownerOf(onto));
   }
-}
-
-export function location(Type, path) {
-  return new Location(Type, path);
 }
 
 class Location {

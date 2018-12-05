@@ -9,7 +9,7 @@ export default function create(Type, value) {
 
 function transition(object, Type, path, name, method, ...args) {
   let owner = ownerOf(object);
-  let context = link(object, locationOf(object), atomOf(object));
+  let context = link(object, Type, path, atomOf(object));
   let result = method.apply(context, args);
 
   function patch() {
@@ -20,8 +20,7 @@ function transition(object, Type, path, name, method, ...args) {
       return set(lens, result, atomOf(object));
     }
   }
-
-  return link(create(owner.Type), owner, patch());
+  return link(create(owner.Type), owner.Type, owner.path, patch());
 }
 
 function property(object, Type, path, name, currentValue) {

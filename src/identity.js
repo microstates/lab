@@ -1,6 +1,6 @@
 import MicrostateType from './microstate-type';
 import { At, view, compose, Path } from './lens';
-import { typeOf, valueOf, pathOf, link2, AtomOf } from './meta';
+import { typeOf, valueOf, pathOf, link, AtomOf } from './meta';
 import { treemap } from './tree';
 import create from './create';
 
@@ -32,7 +32,7 @@ export default function Identity(microstate, fn) {
   function transition(Type, name, path, args) {
     let atom = view(Id.value, paths);
     let Root = view(Id.Type, paths);
-    let local = link2(create(Type), Type, path, atom, Root, []);
+    let local = link(create(Type), Type, path, atom, Root, []);
     let next = local[name](...args);
     return paths = identify(next, paths);
   }
@@ -56,7 +56,7 @@ export default function Identity(microstate, fn) {
 
       let value = valueOf(microstate);
 
-      let ref = link2(new Proxy(value), Type, path, 'polymorphic', view(Id.Type, paths), []);
+      let ref = link(new Proxy(value), Type, path, "⚛", view(Id.Type, paths), []);
 
       return {
         [Id.symbol]: new Id(Type, path, value, ref)
