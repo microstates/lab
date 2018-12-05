@@ -6,8 +6,6 @@ node_js:
   - "8"
   - "6"
 
-script: echo "Running tests against $(node -v) ..."
-
 jobs:
   include:
     - stage: Coverage Report
