@@ -12,7 +12,7 @@ export default function MicrostateType(Type, transitionFn, propertyFn) {
     constructor(value) {
       super(value);
       Object.defineProperties(this, map((slot, key) => {
-        return CachedProperty(key, self => propertyFn(self, slot, key, pathOf(this).concat(key)));
+        return CachedProperty(key, self => propertyFn(self, Type, pathOf(this).concat(key), key, slot));
       }, this));
       return root(this, Type, value);
     }

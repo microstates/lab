@@ -4,30 +4,29 @@ import MicrostateType from './microstate-type';
 
 export default function create(Type, value) {
   let Microstate = MicrostateType(Type, transition, property);
-  // return root(Type, value, () => new Microstate(value))
   return new Microstate(value);
 }
 
-function transition(microstate, Type, path, name, method, ...args) {
-  let owner = ownerOf(microstate);
-  let context = link(microstate, locationOf(microstate), atomOf(microstate));
+function transition(object, Type, path, name, method, ...args) {
+  let owner = ownerOf(object);
+  let context = link(object, locationOf(object), atomOf(object));
   let result = method.apply(context, args);
 
   function patch() {
     if (metaOf(result)) {
       return atomOf(result);
     } else {
-      let { lens } = locationOf(microstate);
-      return set(lens, result, atomOf(microstate));
+      let { lens } = locationOf(object);
+      return set(lens, result, atomOf(object));
     }
   }
 
   return link(create(owner.Type), owner, patch());
 }
 
-export function property(microstate, slot, key) {
-  let value = valueOf(microstate);
-  let expanded = typeof slot === 'function' ? create(slot, value) : slot;
-  let substate = value != null && value[key] != null ? expanded.set(value[key]) : expanded;
-  return mount(microstate, substate, key);
+function property(object, Type, path, name, currentValue) {
+  let value = valueOf(object);
+  let expanded = typeof currentValue === 'function' ? create(currentValue, value) : currentValue;
+  let substate = value != null && value[name] != null ? expanded.set(value[name]) : expanded;
+  return mount(object, substate, name);
 }
