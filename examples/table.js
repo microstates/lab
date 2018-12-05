@@ -1,6 +1,6 @@
 import { create } from '../index';
 import { query } from '../src/query';
-import { link, ownerOf, pathOf, valueOf, metaOf, atomOf, location } from '../src/meta';
+import { link, ownerOf, pathOf, valueOf, atomOf, location } from '../src/meta';
 
 export default function Table(T) {
   class Table {
@@ -59,7 +59,7 @@ export default function Table(T) {
     *[Symbol.iterator]() {
       let i = -1;
       let { table, index } = this;
-      for (let _ of valueOf(table)[index]) {
+      for (let _ of valueOf(table)[index]) { //eslint-disable-line
         i++;
         yield link(create(T), location(T, pathOf(table).concat([index, i])), atomOf(table), ownerOf(table));
       }
@@ -75,7 +75,7 @@ export default function Table(T) {
     *[Symbol.iterator]() {
       let i = -1;
       let { table, index } = this;
-      for (let _ of valueOf(table)) {
+      for (let _ of valueOf(table)) { //eslint-disable-line
         i++;
         yield link(create(T), location(T, pathOf(table).concat([i, index])), atomOf(table), ownerOf(table));
       }

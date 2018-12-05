@@ -1,11 +1,17 @@
+import { type } from 'funcadelic';
+
 import { At, view, set, over, compose, Path } from './lens';
 
 export function root(microstate, Type, value) {
-  return link(microstate, new Location(Type, []), value);
+  return set(Meta.data, new Meta(new Location(Type, []), value), microstate);
 }
 
 export function link(microstate, location, atom, owner = location) {
   return set(Meta.data, new Meta(location, atom, owner), microstate);
+}
+
+export function link2(object, Type, path, atom, Owner, ownerPath) {
+  return set(Meta.data, new Meta(new Location(Type, path), atom, new Location(Owner, ownerPath)), object);
 }
 
 export function mount(microstate, substate, key) {
@@ -29,10 +35,6 @@ export function locationOf(microstate) {
   return view(Meta.location, microstate);
 }
 
-export function atomOf(microstate) {
-  return view(Meta.atom, microstate);
-}
-
 export function ownerOf(microstate) {
   return view(Meta.owner, microstate);
 }
@@ -42,7 +44,7 @@ export function typeOf(microstate) {
 }
 
 export function pathOf(microstate) {
-  return view(Meta.path, microstate);
+  return view(Meta.path, microstate) || [];
 }
 
 export class Meta {
@@ -54,9 +56,9 @@ export class Meta {
   static Type = compose(Meta.location, At("Type"));
   static path = compose(Meta.location, At("path"));
 
-  constructor(location, atom, owner) {
-    this.location = location;
+  constructor(location, atom, owner = location) {
     this.atom = atom;
+    this.location = location;
     this.owner = owner;
   }
 
@@ -80,3 +82,17 @@ class Location {
     return Path(this.path);
   }
 }
+
+export const AtomOf = type(class AtomOf {
+  atomOf(object) {
+    return this(object).atomOf(object);
+  }
+});
+
+AtomOf.instance(Object, {
+  atomOf(object) {
+    return view(Meta.atom, object);
+  }
+});
+
+export const { atomOf } = AtomOf.prototype;

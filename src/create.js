@@ -1,20 +1,16 @@
 import { set } from './lens';
-import { link, locationOf, metaOf, atomOf, ownerOf } from './meta';
+import { link, mount, locationOf, metaOf, atomOf, ownerOf, valueOf } from './meta';
 import MicrostateType from './microstate-type';
 
 export default function create(Type, value) {
-  let Microstate = MicrostateType(Type, transition);
+  let Microstate = MicrostateType(Type, transition, property);
+  // return root(Type, value, () => new Microstate(value))
   return new Microstate(value);
 }
 
-function transition(microstate, name, method, ...args) {
-
-  //location of the owner of this transition.
+function transition(microstate, Type, path, name, method, ...args) {
   let owner = ownerOf(microstate);
-
-  //in the context of the transition, the owner will be the same as the microstate.
   let context = link(microstate, locationOf(microstate), atomOf(microstate));
-
   let result = method.apply(context, args);
 
   function patch() {
@@ -27,4 +23,11 @@ function transition(microstate, name, method, ...args) {
   }
 
   return link(create(owner.Type), owner, patch());
+}
+
+export function property(microstate, slot, key) {
+  let value = valueOf(microstate);
+  let expanded = typeof slot === 'function' ? create(slot, value) : slot;
+  let substate = value != null && value[key] != null ? expanded.set(value[key]) : expanded;
+  return mount(microstate, substate, key);
 }
