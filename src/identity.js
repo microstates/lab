@@ -52,16 +52,20 @@ export default function Identity(microstate, fn) {
       let Type = typeOf(microstate);
       let Proxy = MicrostateType(Type, transitionFn, propertyFn);
       Proxy.name = `Id<${Type.name}>`;
-      AtomOf.instance(Proxy, { atomOf: () => view(Id.value, paths) });
+      AtomOf.instance(Proxy, { atomOf });
 
       let value = valueOf(microstate);
 
-      let ref = link(new Proxy(value), Type, path, "⚛", view(Id.Type, paths), []);
+      let ref = link(new Proxy(value), Type, path, "⚛", atomOf(), []);
 
       return {
         [Id.symbol]: new Id(Type, path, value, ref)
       };
     }
+  }
+
+  function atomOf() {
+    return view(Id.value, paths);
   }
 
   function transitionFn(object, Type, path, name, method, ...args) {
