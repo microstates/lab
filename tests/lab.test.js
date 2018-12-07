@@ -1,6 +1,4 @@
-import { append } from 'funcadelic';
-import { create, valueOf, atomOf } from '../index';
-import { mount, link } from '../src/meta';
+import { create, valueOf } from '../index';
 import expect from 'expect';
 
 describe('Lab', () => {
@@ -129,58 +127,4 @@ describe('Lab', () => {
     });
 
   });
-
-  describe('A globally linked microstate within another microstate', () => {
-    class Person {
-      get left() {
-        return mount(this, append(create(Hand), {
-          get other() {
-            return link(create(Hand), Hand, ['right'], atomOf(this), Hand, ['left']);
-          }
-        }), 'left');
-      }
-      get right() {
-        return mount(this, append(create(Hand), {
-          get other() {
-            return link(create(Hand), Hand, ['left'], atomOf(this), Hand, ['right']);
-          }
-        }), 'right');
-      }
-    }
-
-    class Hand {
-      other = Hand;
-      claps = Num;
-
-      clap() {
-        return this
-          .other.claps.increment()
-          .claps.increment();
-      }
-    }
-
-    let person;
-    beforeEach(function() {
-      person = create(Person, { left: { claps: 1 }, right: { claps: 1 } });
-    });
-
-    it('links the proper states', function() {
-      expect(person.left.claps.state).toEqual(1);
-      expect(person.right.claps.state).toEqual(1);
-    });
-
-    describe('transitioning', function() {
-
-      let clapped;
-      beforeEach(function() {
-        clapped = person.right.clap();
-      });
-      it('claps both hands', function() {
-        expect(clapped.left.claps.state).toEqual(2);
-        expect(clapped.right.claps.state).toEqual(2);
-      });
-    });
-
-  })
-  ;
 });

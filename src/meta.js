@@ -1,6 +1,6 @@
 import { type } from 'funcadelic';
 
-import { At, view, set, over, compose, Path } from './lens';
+import { At, view, set, compose, Path } from './lens';
 
 export function root(microstate, Type, value) {
   return set(Meta.data, new Meta(new Location(Type, []), value), microstate);
@@ -8,10 +8,6 @@ export function root(microstate, Type, value) {
 
 export function link(object, Type, path, atom, Owner = Type, ownerPath = path) {
   return set(Meta.data, new Meta(new Location(Type, path), atom, new Location(Owner, ownerPath)), object);
-}
-
-export function mount(microstate, substate, key) {
-  return over(Meta.data, meta => meta.mount(microstate, key), substate);
 }
 
 export function valueOf(object) {
@@ -56,11 +52,6 @@ export class Meta {
     this.atom = atom;
     this.location = location;
     this.owner = owner;
-  }
-
-  mount(onto, atKey) {
-    let location = new Location(this.location.Type, pathOf(onto).concat(atKey));
-    return new Meta(location, atomOf(onto), ownerOf(onto));
   }
 }
 
