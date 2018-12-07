@@ -23,6 +23,17 @@ describe('Lab', () => {
       return !!value;
     }
   }
+
+  describe('valueOf() a POJO', ()=> {
+    it('is the same as the POJO', ()=> {
+      let pojo = {};
+      expect(valueOf(pojo)).toBe(pojo);
+      expect(valueOf(null)).toBe(null);
+      expect(valueOf(undefined)).toBe(undefined);
+    });
+  });
+
+
   describe('a simple, global microstate', () => {
     let ms;
 
