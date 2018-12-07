@@ -15,9 +15,9 @@ export function mount(microstate, substate, key) {
 }
 
 export function valueOf(object) {
-  let { lens } = view(Meta.location, object);
-  if (lens != null) {
-    return view(lens, atomOf(object));
+  let location = view(Meta.location, object);
+  if (location != null) {
+    return view(location.lens, atomOf(object));
   } else {
     return object;
   }
