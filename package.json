@@ -47,7 +47,9 @@
   },
   "nyc": {
     "exclude": [
-      "**/tests"
+      "**/tests",
+      "examples",
+      "src/query.js"
     ]
   }
 }
