@@ -72,8 +72,8 @@ export default function Identity(microstate, fn) {
     return fn(Type, name, path, args);
   }
 
-  function propertyFn(object, Type, path, /* name, currentValue */) {
-    let location = compose(Path(path), Id.ref);
+  function propertyFn(object, Type, path, name /* relationship  */) {
+    let location = compose(Path(path.concat(name)), Id.ref);
     return view(location, paths);
   }
 }
