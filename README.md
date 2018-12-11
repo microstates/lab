@@ -1,6 +1,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Created by The Frontside](https://img.shields.io/badge/created%20by-frontside.io-blue.svg)](https://frontside.io)
 [![Build Status](https://travis-ci.org/microstates/lab.svg?branch=master)](https://travis-ci.org/microstates/lab)
+[![Coverage Status](https://coveralls.io/repos/github/microstates/lab/badge.svg?branch=master)](https://coveralls.io/github/microstates/lab?branch=master)
 [![Greenkeeper badge](https://badges.greenkeeper.io/microstates/lab.svg)](https://greenkeeper.io/)
 
 
