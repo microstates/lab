@@ -1,8 +1,10 @@
 import { append, map, foldl } from 'funcadelic';
 import { NumberType, StringType } from './types';
 import { create as _create } from '../index';
-import { view, At } from '../src/lens';
 import { link, valueOf, pathOf, atomOf, typeOf, metaOf, ownerOf } from '../src/meta';
+import Txn from '../src/transaction';
+import belongsTo from './db/belongs-to';
+import hasMany from './db/has-many';
 
 import faker from 'faker';
 
@@ -14,9 +16,16 @@ class Person {
 class Blog {
   title = StringType;
   author = belongsTo(Person, "people");
+  comments = hasMany(Comment, "comments");
 }
 
-class Comment {}
+class Comment {
+  title = StringType;
+}
+
+function Id(record) {
+  return ln(StringType, pathOf(record).concat("id"), record);
+}
 
 function Table(Type, factory = {}) {
 
@@ -33,7 +42,7 @@ function Table(Type, factory = {}) {
     get latestId() { return this.nextId.state - 1; }
 
     get records() {
-      return map((value, key) => ln(Type, pathOf(this).concat(["records", key]), this), this.state.records);
+      return map((value, key) => ln(Type, pathOf(this).concat(["records", key]), this), this.state.records || {});
     }
 
     get state() {
@@ -42,33 +51,50 @@ function Table(Type, factory = {}) {
 
     create(overrides = {}) {
       let id = this.nextId.state;
-      let record = createAt(this.nextId.increment(), Type, ["records", id], { id });
+      let path = pathOf(this).concat(["records", id]);
+      let record = Txn(this.nextId.increment(), ln(Type, path))
+          .flatMap(([, record]) => Txn(Id(record).set(id)));
 
-      let created = foldl((record, { key, value: attr }) => {
-        if (record[key]) {
-          let attrFn = typeof attr === 'function' ? attr : () => attr;
+      return foldl((txn, { key, value: attr }) => {
+        return txn
+          .flatMap(txn => {
+            let [ record ] = txn;
+            if (record[key]) {
+              return txn
+                .flatMap(([ record ]) => Txn(record[key], ln(DB, pathOf(this).slice(0, -1))))
+                .flatMap(([ relationship, db ]) => {
 
-          // create a local link of the DB that returns itself. to pass into
-          // the factory function.
-          let db = link(_create(DB), DB, pathOf(this).slice(0, -1), atomOf(record));
+                  function attrFn() {
+                    if (relationship.isBelongsTo || relationship.isHasMany) {
+                      let build = factory[key];
+                      if (build) {
+                        let empty = relationship.isHasMany ? [] : {};
+                        return build(relationship, db, overrides[key] || empty);
+                      } else {
+                        return null;
+                      }
+                    } else {
+                      return typeof attr === 'function' ? attr(id) : attr;
+                    }
+                  }
 
-          let result = attrFn(overrides[key], db);
+                  let result = attrFn();
 
-          let next = metaOf(result) ? link(record, Type, pathOf(record), atomOf(result)) : record;
-
-          return next[key].set(result);
-        } else {
-          return record;
-        }
+                  if (metaOf(result)) {
+                    return Txn(result, record);
+                  } else {
+                    return Txn(relationship.set(result), record);
+                  }
+                })
+                .flatMap(([, record]) => Txn(record));
+            } else {
+              return txn;
+            }
+          });
       }, record, append(factory, overrides));
-
-      let owner = ownerOf(this);
-      return link(this, typeOf(this), pathOf(this), atomOf(created), owner.Type, owner.path);
     }
   };
 }
-
-
 
 class DB {
   people = Table(Person, {
@@ -77,66 +103,32 @@ class DB {
   });
   blogs = Table(Blog, {
     title: () => faker.random.words(),
-    author: (attrs, db) => {
-      return db.people.create(attrs)
-        .people.latest;
-    }
+    author: (author, db, attrs = {}) => Txn(db.people)
+      .flatMap(([ people ]) => Txn(people.create(attrs).latest, author))
+      .flatMap(([ person, author ]) => Txn(author.set(person))),
+    comments: (comments, db, list = []) => list.reduce((txn, attrs) => {
+      return txn
+        .flatMap(([ db ]) => Txn(db.comments.create(attrs), comments))
+        .flatMap(([ db, comments ]) => Txn(comments.push(db.comments.latest), db))
+        .flatMap(([, db ]) => Txn(db));
+    }, Txn(db))
   });
+
   comments = Table(Comment);
 }
 
-function createAt(parent, Type, path, value) {
-  return link(_create(Type), Type, pathOf(parent).concat(path), atomOf(parent)).set(value);
-}
-
-function ln(Type, path, owner) {
+export function ln(Type, path, owner = _create(Type)) {
   return link(_create(Type), Type, path, atomOf(owner), typeOf(owner), pathOf(owner));
 }
 
-import Relationship from '../src/relationship';
-
-function linkTo(Type, path) {
-  return new Relationship(resolve);
-
-  function resolve(origin, originType, originPath /*, relationshipName */) {
-
-    return {
-      Type,
-      path: path.reduce((path, element) => {
-        if (element === '..') {
-          return path.slice(0, -1);
-        } else if (element === '.') {
-          return path;
-        } else {
-          return path.concat(element);
-        }
-      }, originPath)
-    };
-  }
-}
-
-function belongsTo(T, tableName) {
-  return new Relationship(resolve);
-
-  function BelongsTo(originType, originPath, foreignKey) {
-    return class BelongsTo extends T {
-      set(value) {
-        let origin = ln(originType, originPath, value);
-        let id = valueOf(value).id;
-        return origin.set(append(valueOf(origin), {
-          [foreignKey]: id
-        }));
-      }
-    };
-  }
-
-  function resolve(origin, originType, originPath, relationshipName) {
-    let foreignKey = `${relationshipName}Id`;
-    let id = view(At(foreignKey), valueOf(origin));
-    let Type = BelongsTo(originType, originPath, foreignKey);
-    let { resolve } = linkTo(Type, ["..", "..", "..", tableName, "records", id]);
-    return resolve(origin, originType, originPath, relationshipName);
-  }
-}
+// function DB(tables) {
+//   return class DB {
+//     constructor() {
+//       Object.keys(tables).forEach(key => {
+//         this[key] = tables[key]
+//       });
+//     }
+//   }
+// }
 
 export default _create(DB, {});

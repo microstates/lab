@@ -1,13 +1,16 @@
+import { stable } from 'funcadelic';
+
 export default function CachedProperty(key, reify) {
+
+  let get = stable(object => reify(object));
+
   let enumerable = true;
   let configurable = true;
   return {
     enumerable,
     configurable,
     get() {
-      let value = reify(this);
-      Object.defineProperty(this, key, { enumerable, value });
-      return value;
+      return get(this);
     }
   };
 }
