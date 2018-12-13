@@ -68,7 +68,11 @@ class Location {
 
 export const AtomOf = type(class AtomOf {
   atomOf(object) {
-    return this(object).atomOf(object);
+    if (object != null) {
+      return this(object).atomOf(object);
+    } else {
+      return undefined;
+    }
   }
 });
 
