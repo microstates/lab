@@ -40,7 +40,7 @@
     "rollup-plugin-babel": "4.1.0",
     "rollup-plugin-filesize": "5.0.1",
     "rollup-plugin-node-resolve": "4.0.0",
-    "@babel/plugin-proposal-class-properties": "^7.1.0"
+    "@babel/plugin-proposal-class-properties": "^7.2.1"
   },
   "dependencies": {
     "funcadelic": "^0.5.4"
