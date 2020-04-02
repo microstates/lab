@@ -33,7 +33,7 @@
     "coveralls": "^3.0.2",
     "eslint": "^5.7.0",
     "eslint-plugin-prefer-let": "^1.0.1",
-    "expect": "^24.1.0",
+    "expect": "^25.2.6",
     "mocha": "^6.0.0",
     "nyc": "^13.1.0",
     "rollup": "^1.0.0",
